@@ -37,7 +37,7 @@ class DataManager(object):
 		return list(self.data.keys())
 
 	
-	def update_value(index, value, time):
+	def update_value(self, index, value, time):
 		self.data[index].update_value(value, time)
 
 	

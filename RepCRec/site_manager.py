@@ -39,8 +39,9 @@ class SiteManager(object):
 					indices = list(range(1, self.num_variables + 1))
 				stdout = ["site " + str(s)]
 				tmp = self.sites[s].dump(indices)
-				stdout.append(tmp)
-				print(" ".join(stdout))
+				if tmp != "":
+					stdout.append(tmp)
+					print(" ".join(stdout))
 
 
 	def update_value(self, index, value, time):
