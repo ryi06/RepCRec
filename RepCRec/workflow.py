@@ -63,7 +63,7 @@ class Workflow(object):
 			if params == "":
 				self.transaction_manager.dump()
 			elif "x" in params:
-				self.transaction_manager.dump(indices=[name2id([params])])
+				self.transaction_manager.dump(indices=[name2id(params)])
 			else:
 				self.transaction_manager.dump(sites=[int(params)])
 		
