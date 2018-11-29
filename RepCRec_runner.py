@@ -7,7 +7,7 @@ Ren Yi--ry708@nyu.edu
 Yanqiu Wu--yw1370@nyu.edu
 '''
 import argparse
-from RepCRec_local import Workflow
+from RepCRec import Workflow
 
 
 parser = argparse.ArgumentParser('A distributed database with replicated concurrency control and recovery system')

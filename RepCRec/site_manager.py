@@ -32,11 +32,11 @@ class SiteManager(object):
 			sites = range(1, self.num_sites + 1)
 		# if indices is None:
 		# 	indices = range(1, self.num_variables + 1)
-
 		for s in sites:
 			if self.sites[s].status == "UP":
 				if indices is None:
-					indicies = self.sites[s].get_keys()
+					# indices = self.sites[s].get_keys()
+					indices = list(range(1, self.num_variables + 1))
 				stdout = ["site " + str(s)]
 				tmp = self.sites[s].dump(indices)
 				stdout.append(tmp)
@@ -127,9 +127,9 @@ class SiteManager(object):
 				tmp = self.sites[s].add_lock(index, tid, lock_type)
 				if tmp:
 					lock_sites.append(s)
+					acquired = True
 					if lock_type == "READ":
-						acquired = True
-						break
+						break	
 				else:
 					if lock_type == "WRITE":
 						acquired = False

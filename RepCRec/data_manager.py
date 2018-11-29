@@ -52,7 +52,7 @@ class DataManager(object):
 			if check_site(index, self.site):
 				name = id2name(index)
 				value = self.data[index].get_value()
-				tmp = ", ".join(name, str(value))
+				tmp = ": ".join([name, str(value) + ","])
 				stdout.append(tmp)
 		return " ".join(stdout)
 
