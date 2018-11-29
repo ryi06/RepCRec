@@ -44,11 +44,9 @@ class TransactionManager(object):
 		site_flag, acquire_status, conflict_Ts, lock_sites = self.site_manager.acquire_locks(Tid,'WRITE',dataid)
 		# if successfully acquired
 		if acquire_status:
+			print ('Transaction '+str(Tid) +" successfully acquire write lock on x"+str(dataid))
 			# update uncommited values
 			T.uncommitted_data[dataid] = value
-			command_tuple = ("WRITE",Tid,dataid,value)
-			if command_tuple in self.waiting_commands:
-				self.waiting_commands.remove(command_tuple)
 		else: 
 			if site_flag:
 				# Some sites containing that dataid are up
@@ -77,9 +75,6 @@ class TransactionManager(object):
 			self.waiting_commands.add(command_tuple)
 			print ("All available sites are down. Transaction " + str(Tid) +" is waiting on(RO) data "+ str(dataid))
 		else:
-			command_tuple = ("READ",Tid,dataid)
-			if command_tuple in self.waiting_commands:
-				self.waiting_commands.remove(command_tuple)
 			T.read_values.append((dataid,val))
 			T.read_data.add(dataid)
 
@@ -98,6 +93,7 @@ class TransactionManager(object):
 			site_flag, acquire_status, conflict_Ts, lock_sites = self.site_manager.acquire_locks(Tid,'READ',dataid)
 			# if successfully acquired
 			if acquire_status:
+				print ('Transaction '+str(Tid) +" successfully acquire read lock on x"+str(dataid))
 				# T has previously write dataid
 				if dataid in T.uncommitted_data:
 					# read the value written
@@ -114,11 +110,6 @@ class TransactionManager(object):
 					val = self.site_manager.get_value(read_site, dataid)
 					T.read_values.append((dataid,val))
 					T.read_data.add(dataid)
-
-				# remove this command if it's inside waiting commands
-				command_tuple = ("READ",Tid,dataid)
-				if command_tuple in self.waiting_commands:
-					self.waiting_commands.remove(command_tuple)
 			else:
 				# update wait-for-graph
 				# ct here is the index of each conflicting transaction
@@ -132,7 +123,9 @@ class TransactionManager(object):
 				
 
 	def try_waiting_commands(self):
-		for command_tuple in self.waiting_commands:
+		waiting_commands = self.waiting_commands
+		self.waiting_commands = set()
+		for command_tuple in waiting_commands:
 			if command_tuple[1] in self.transactions:
 				if command_tuple[0] == "READ":
 					self.read(command_tuple[1],command_tuple[2])
@@ -142,11 +135,11 @@ class TransactionManager(object):
 				print ("Transaction "+str(command_tuple[1]) +" is no longer active.")
 
 
-	def _update_wait_for_graph(self, Tid):
+	def __update_wait_for_graph(self, Tid):
 		if Tid in self.wait_for_graph:
 			 del self.wait_for_graph[Tid]
 
-	def update_transaction_status(self):
+	def __update_transaction_status(self):
 		wait_list = []
 		for id_list in self.wait_for_graph.values():
 			wait_list += id_list
@@ -154,20 +147,20 @@ class TransactionManager(object):
 			if tid not in wait_list:
 				self.transactions[tid].status = "RUN"
 
-	def _update_uncommited_value(self, Tid):
+	def __update_uncommitted_value(self, Tid):
 		T = self.transactions[Tid]
 		commit_time = time.time()
 		for dataid in T.uncommitted_data:
 			value = T.uncommitted_data[dataid]
 			self.site_manager.update_value(dataid, value, commit_time)
 
-	def _print_read_values(self,Tid):
+	def __print_read_values(self,Tid):
 		T = self.transactions[Tid]
 		for (dataid, value) in T.read_values:
 			print ("x"+str(dataid)+": "+str(value))
 
-	def _abort(self, Tid):
-		print ("Abort transaction " + str(Tid))
+	def __abort(self, Tid):
+		print ("Aborting transaction " + str(Tid))
 		# remove locks related to Tid
 		print ('Release locks given by transaction ' + str(Tid))
 		T = self.transactions[Tid]
@@ -181,11 +174,11 @@ class TransactionManager(object):
 
 		# update self.wait_for_graph
 		print ("Update wait-for-graph after abort")
-		self._update_wait_for_graph(Tid)
+		self.__update_wait_for_graph(Tid)
 
 		# update remaining transaction status
 		print ("Update remaining active transaction status after abort")
-		self.update_transaction_status()
+		self.__update_transaction_status()
 
 		# retry waiting commands
 		print ("Retry waiting commads after abort")
@@ -194,17 +187,17 @@ class TransactionManager(object):
 		print ("Abort is done.")
 
 
-	def commit(self, Tid):
-		print ("Commit transaction " + str(Tid))
+	def __commit(self, Tid):
+		print ("Committing transaction " + str(Tid))
 
 		T = self.transactions[Tid]
 		# If T is RW:
 		# update uncommited values
 		if T.type == "RW":
-			self._update_uncommitted_values(Tid)
+			self.__update_uncommitted_value(Tid)
 
 		# print out read values
-		self._print_read_values(Tid)
+		self.__print_read_values(Tid)
 		
 		# remove locks related to Tid
 		print ('Release locks given by transaction ' + str(Tid))
@@ -219,20 +212,20 @@ class TransactionManager(object):
 
 		# update self.wait_for_graph
 		print ("Update wait-for-graph after commit")
-		self._update_wait_for_graph(Tid)
+		self.__update_wait_for_graph(Tid)
 
 		# update remaining transaction status
 		print ("Update remaining active transaction status after commit")
-		self.update_transaction_status()
+		self.__update_transaction_status()
 
 		# retry waiting commands
-		print ("Retry waiting commads after abort")
+		print ("Retry waiting commads after commit")
 		self.try_waiting_commands()
 
 		print ("Commit is done.")
 
 		
-	def _visit(self,tid,path,visited):
+	def __visit(self,tid,path,visited):
 		if tid in visited:
 			return False, path, visited
 		visited.add(tid)
@@ -240,18 +233,18 @@ class TransactionManager(object):
 
 		if tid in self.wait_for_graph:
 			for neighbour in self.wait_for_graph[tid]:
-				if neighbour in path or self.visit(neighbour,path,visited):
+				if neighbour in path or self.__visit(neighbour,path,visited):
 					return True, path, visited
 
 		path.remove(tid)
 		return False, path, visited
 
-	def _detect_deadlock(self):
+	def __detect_deadlock(self):
 		path = set()
 		visited = set()
 
 		for tid in self.wait_for_graph:
-			flag, path, visited = self._visit(tid, path, visited) 
+			flag, path, visited = self.__visit(tid, path, visited) 
 			if flag == True:
 				# There is cycle
 				# abort the youngest transaction
@@ -260,9 +253,10 @@ class TransactionManager(object):
 		return False, path
 				
 	def clear_deadlocks(self):
-		cycle, path = self._detect_deadlock()
+		cycle, path = self.__detect_deadlock()
 		while cycle == True:
 			if path:
+				print ("Found deadlock.")
 				# abort the youngest transaction
 				time = None 
 				abortid = 0
@@ -274,15 +268,15 @@ class TransactionManager(object):
 						time = self.transactions[tid].start_time
 						abortid = tid
 				# get the youngest tid
-				self._abort(abortid)
+				self.__abort(abortid)
 
-				cycle, path = self._detect_deadlock()
+				cycle, path = self.__detect_deadlock()
 
 			else:
 				print ("Something wrong with cycle detection.")
 				break
 
-		print ("All deadlocks are cleared.")
+		#print ("No deadlocks found.")
 
 
 	def dump(self, sites=None, indices=None):
@@ -293,11 +287,11 @@ class TransactionManager(object):
 		if Tid in self.transactions:
 			T = self.transactions[Tid]
 			if T.status == "WAIT":
-				print ("End: Transaction "+str(Tid)+" is waiting, should abort.")
-				self._abort(Tid)
+				print ("End: Transaction "+str(Tid)+" should abort.")
+				self.__abort(Tid)
 			else:
 				print ("End: Transaction "+str(Tid)+" should commit.")
-				self.commit(Tid)
+				self.__commit(Tid)
 		else:
 			print ('End: Transaction '+str(Tid)+" is no longer active.")
 

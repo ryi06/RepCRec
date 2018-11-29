@@ -39,6 +39,8 @@ class Workflow(object):
 		"""Pass instruction to transaction_manager"""
 		keyword, params = record
 
+		self.transaction_manager.clear_deadlocks()
+
 		# begin(T1)
 		if keyword == 'begin':
 			self.transaction_manager.begin(name2id(params), params)
