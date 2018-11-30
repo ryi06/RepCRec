@@ -28,6 +28,10 @@ class TransactionManager(object):
 		T = Transaction(Tid, name, "RO", "RUN")
 		self.transactions[Tid] = T
 
+		# for key in self.site_manager.get_variables(): T.read_value(...) = self.site_manager.get_latest_value(...)
+		for 
+			T.read_values = ()
+
 	def write(self, Tid, dataid, value):
 		if Tid not in self.transactions:
 			print('Transaction ' + str(Tid) + " not exist.")
@@ -302,12 +306,19 @@ class TransactionManager(object):
 
 	def fail(self, siteid):
 		print ("Site "+str(siteid) + " fails.")
+		self.site_manager.fail(siteid)
+
+		abort_ids = []
 		data_ids = self.site_manager.get_site_keys(siteid)
 		for dataid in data_ids:
 			for Tid in self.transactions:
 				T = self.transactions[Tid]
 				if dataid in T.read_data or dataid in T.uncommitted_data:
-					print ("Transaction "+str(Tid)+" aborts due to site failure.")
-					self.__abort(Tid)
+					abort_ids.append(Tid)
+
+		for abortid in abort_ids:
+			print ("Transaction "+str(abortid)+" aborts due to site failure.")
+			self.__abort(abortid)
+
 
 
