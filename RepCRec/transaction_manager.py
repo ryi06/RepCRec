@@ -233,7 +233,7 @@ class TransactionManager(object):
 
 		if tid in self.wait_for_graph:
 			for neighbour in self.wait_for_graph[tid]:
-				if neighbour in path or self.__visit(neighbour,path,visited):
+				if neighbour in path or self.__visit(neighbour,path,visited)[0]:
 					return True, path, visited
 
 		path.remove(tid)
@@ -301,6 +301,13 @@ class TransactionManager(object):
 
 
 	def fail(self, siteid):
-		self.site_manager.fail(siteid)
+		print ("Site "+str(siteid) + " fails.")
+		data_ids = self.site_manager.get_site_keys(siteid)
+		for dataid in data_ids:
+			for Tid in self.transactions:
+				T = self.transactions[Tid]
+				if dataid in T.read_data or dataid in T.uncommitted_data:
+					print ("Transaction "+str(Tid)+" aborts due to site failure.")
+					self.__abort(Tid)
 
 
