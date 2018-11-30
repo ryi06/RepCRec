@@ -63,12 +63,12 @@ class SiteManager(object):
 		sites = get_variable_sites(index)
 
 		for s in sites:
-			if self.sites[site].status == "UP":
+			if self.sites[s].status == "UP":
 				v, t, p = self.sites[s].get_value_time(index)
 
 				if p and t > latest_time:
 					latest_time = t
-					latest_val = val
+					latest_val = v
 
 		return latest_val
 
@@ -246,6 +246,12 @@ class SiteManager(object):
 		val = data.commit_value
 
 		return val
+
+	def get_site_keys(self, site):
+		"""
+		Get a list of data id on this site
+		"""
+		return self.sites[site].get_keys()
 
 
 

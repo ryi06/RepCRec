@@ -233,7 +233,7 @@ class TransactionManager(object):
 
 		if tid in self.wait_for_graph:
 			for neighbour in self.wait_for_graph[tid]:
-				if neighbour in path or self.__visit(neighbour,path,visited):
+				if neighbour in path or self.__visit(neighbour,path,visited)[0]:
 					return True, path, visited
 
 		path.remove(tid)
