@@ -253,6 +253,9 @@ class SiteManager(object):
 		"""
 		return self.sites[site].get_keys()
 
+	def get_variables(self):
+		return list(range(1, self.num_variables + 1))
+
 
 
 

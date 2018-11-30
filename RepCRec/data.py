@@ -45,7 +45,7 @@ class Data(object):
 		"""If data item is lock free, active transaction writes to uncommit_value"""
 		self.commit_value  = value
 		self.commit_time = time
-		self.read_permission = True
+		self.read_ready = True
 
 
 
