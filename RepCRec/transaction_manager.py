@@ -29,8 +29,9 @@ class TransactionManager(object):
 		self.transactions[Tid] = T
 
 		# for key in self.site_manager.get_variables(): T.read_value(...) = self.site_manager.get_latest_value(...)
-		for 
-			T.read_values = ()
+		for dataid in self.site_manager.get_variables():
+			val = self.site_manager.get_latest_value(dataid)
+			T.value_copies[dataid] = val
 
 	def write(self, Tid, dataid, value):
 		if Tid not in self.transactions:
@@ -70,9 +71,9 @@ class TransactionManager(object):
 
 		if T.status != "RUN":
 			return
-		# get the latest committed value of dataid
-		val = self.site_manager.get_latest_value(dataid)
+		# get the latest committed value of dataid from value copies
 		# if all sites are down, no site to read
+		val = T.value_copies[dataid]
 		if val is None:
 			T.status = "WAIT"
 			command_tuple = ("READ",Tid,dataid)

@@ -18,5 +18,6 @@ class Transaction(object):
 		self.status = status
 		self.read_values = []
 		self.read_data = set()
+		self.value_copies = dict()
 		self.uncommitted_data = dict()
 
