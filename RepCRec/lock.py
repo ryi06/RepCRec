@@ -33,10 +33,10 @@ class Lock(object):
 
 
 	def reset(self, transaction):
-		if self.__locked():
-			assert transaction == self.lock_txn
-			self.lock_txn = None
-			self.lock_type = None
+		# if self.__locked():
+			# assert transaction == self.lock_txn
+		self.lock_txn = None
+		self.lock_type = None
 
 
 	def get_status(self):

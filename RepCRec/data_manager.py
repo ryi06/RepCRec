@@ -63,8 +63,13 @@ class DataManager(object):
 				self.data[index].read_permission())
 
 	
-	def check_lock(self, index):
-		return self.lock_table[index].get_status()
+	def check_lock(self, index, transaction, lock_type):
+		curr_locked, curr_txn, curr_type = self.lock_table[index].get_status()
+		# If this site is already locked by the same transaction, it is considered lock free
+		if (curr_locked) and curr_txn == transaction:
+			return (False, None, None)
+
+		return (curr_locked, curr_txn, curr_type)
 
 
 	def add_lock(self, index, transaction, lock_type):

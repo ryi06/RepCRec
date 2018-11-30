@@ -86,7 +86,8 @@ class SiteManager(object):
 		(<up>, <acquired>, <curr_txn>, <read_lock_site>)
 		"""
 		sites = get_variable_sites(index)
-		up, locked, curr_txn, curr_lt = self.__check_locks(sites, index)
+		# import ipdb; ipdb.set_trace()
+		up, locked, curr_txn, curr_lt = self.__check_locks(sites, index, tid, lock_type)
 
 		# if all sites are down, acquire false, no conflicting transactions
 		if not up:
@@ -100,20 +101,7 @@ class SiteManager(object):
 			curr_txn = []
 
 		return (up, acquired, curr_txn, lock_sites)
-		# if not locked:
-		# 	acquired, lock_sites = self.__add_locks(sites, tid, lock_type, index, acquired, read_site)
-		# else:
-		# 	# when variable is not lock free, acquire lock if transactions are the same
-		# 	if curr_txn == tid:
-		# 		acquired, lock_sites = self.__add_locks(sites, tid, lock_type, index, acquired, lock_sites)
-
-		# 	# when variable is not lock free and transactions are different, you can only do R-->R if data item has more than one up sites
-		# 	else:
-		# 		if lock_type == "READ":
-		# 			acquired, lock_sites = 
-		# 	curr_txn = None if acquired else curr_txn
 					
-
 
 	def __add_locks(self, sites, tid, lock_type, index):
 		"""
@@ -139,48 +127,7 @@ class SiteManager(object):
 		return (acquired, lock_sites)
 
 
-
-
-		# if curr_txn is None and curr_lt is None and lock_type == "WRITE":
-		# 	for s in sites:
-		# 		if self.sites[s].status == "UP":
-		# 			self.sites[s].add_lock(index, tid, lock_type)
-		# 			acquired = True
-
-		# if curr_txn is None and curr_lt is None and lock_type == "READ":
-		# 	for s in sites:
-		# 		if self.sites[s].status == "UP":
-		# 			self.sites[s].add_lock(index, tid, lock_type)
-		# 			read_lock_site = s
-		# 			acquired = True
-		# 			break
-
-		# variable has write lock on all copies
-		# if curr_txn == tid and curr_lt == "WRITE" and lock_type == "WRITE":
-		# 	curr_txn = None
-		# 	acquired = True
-
-		# if curr_txn == tid and curr_lt == "WRITE" and lock_type == "READ":
-		# 	curr_txn = None
-		# 	for s in sites:
-		# 		if self.sites[s].status == "UP":
-		# 			self.sites[s].add_lock(index, tid, lock_type)
-
-
-
-		# if lock_type == "WRITE":
-		# 	if transactions is None:
-		# 		for s in sites:
-		# 			if self.sites[s].status != "UP":
-		# 				continue
-
-
-		
-
-		# if lock_type == "READ":
-
-
-	def __check_locks(self, sites, index):
+	def __check_locks(self, sites, index, tid, lock_type):
 		"""
 		Given a data index, check whether it has a lock, if so, what type
 		"""
@@ -192,7 +139,7 @@ class SiteManager(object):
 		for s in sites:
 			if self.sites[s].status == "UP":
 				up = True
-				L, T, t = self.sites[s].check_lock(index)
+				L, T, t = self.sites[s].check_lock(index, tid, lock_type)
 				locked = locked or L
 				if T is not None and T not in transactions:
 					transactions.append(T)
@@ -200,22 +147,8 @@ class SiteManager(object):
 					types.append(t)
 
 		return (up, locked, transactions, types)
-		
-				# assert (transactions == T) or (transactions is None)
-				# assert (types == t) or (tyeps is None)
 
-				# transactions = T
-				# types = t
-
-		# assert locked and isinstance(transactions, int) and isinstance(types, str)
-		# assert (not locked) and (transactions is None) and (types is None)
-
-		
-		# assert len(transactions) <= 1
-		# assert len(types) <= 1
-
-
-		
+	
 	def release_locks(self, transaction, indices):
 		for index in indices:
 			sites = get_variable_sites(index)
