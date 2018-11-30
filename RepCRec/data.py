@@ -25,7 +25,7 @@ class Data(object):
 		self.name = id2name(index)
 		self.commit_value = 10 * index
 		self.commit_time = time
-		self.read_permission = False if recover else True
+		self.read_ready = False if recover else True
 		# self.uncommit_value = None
 
 
@@ -38,7 +38,7 @@ class Data(object):
 
 
 	def read_permission(self):
-		return self.read_permission
+		return self.read_ready
 
 
 	def update_value(self, value, time):
