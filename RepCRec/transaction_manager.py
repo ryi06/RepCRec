@@ -15,7 +15,7 @@ class TransactionManager(object):
 	def __init__(self, site_manager):
 		super(TransactionManager, self).__init__()
 		self.transactions = dict()
-		self.waiting_commands = set()
+		self.waiting_commands = list()
 		self.wait_for_graph = defaultdict(list)
 		self.site_manager = site_manager
 
@@ -41,7 +41,9 @@ class TransactionManager(object):
 		T = self.transactions[Tid]
 		
 		if T.status != "RUN":
-			print ("")
+			# add the command to list
+			command_tuple = ("WRITE",Tid,dataid,value)
+			self.waiting_commands.append(command_tuple)
 			return
 		assert T.type != "RO", 'Transaction is read_only, cannot write'
 
@@ -52,6 +54,7 @@ class TransactionManager(object):
 			print ('Transaction '+str(Tid) +" successfully acquire write lock on x"+str(dataid))
 			# update uncommited values
 			T.uncommitted_data[dataid] = value
+			T.write_lock_sites[dataid] = lock_sites
 		else: 
 			if site_flag:
 				# Some sites containing that dataid are up
@@ -61,15 +64,17 @@ class TransactionManager(object):
 					self.wait_for_graph[ct].append(Tid)
 			# change the transaction status to wait
 			T.status = "WAIT"
-			# add the command to queue
+			# add the command to list
 			command_tuple = ("WRITE",Tid,dataid,value)
-			self.waiting_commands.add(command_tuple)
+			self.waiting_commands.append(command_tuple)
 
 
 	def read_only(self, Tid, dataid):
 		T = self.transactions[Tid]
 
 		if T.status != "RUN":
+			command_tuple = ("READ",Tid,dataid)
+			self.waiting_commands.append(command_tuple)
 			return
 		# get the latest committed value of dataid from value copies
 		# if all sites are down, no site to read
@@ -77,7 +82,7 @@ class TransactionManager(object):
 		if val is None:
 			T.status = "WAIT"
 			command_tuple = ("READ",Tid,dataid)
-			self.waiting_commands.add(command_tuple)
+			self.waiting_commands.append(command_tuple)
 			print ("All available sites are down. Transaction " + str(Tid) +" is waiting on(RO) data "+ str(dataid))
 		else:
 			T.read_values.append((dataid,val))
@@ -89,6 +94,9 @@ class TransactionManager(object):
 			return
 		T = self.transactions[Tid]
 		if T.status != "RUN":
+			# add the command to list
+			command_tuple = ("READ",Tid,dataid)
+			self.waiting_commands.append(command_tuple)
 			return   
 		# read_only transaction read                                      
 		if T.type == 'RO':
@@ -122,14 +130,14 @@ class TransactionManager(object):
 					self.wait_for_graph[ct].append(Tid)
 				# change the transaction status to wait
 				T.status = "WAIT"
-				# add the command to queue
+				# add the command to list
 				command_tuple = ("READ",Tid,dataid)
-				self.waiting_commands.add(command_tuple)
+				self.waiting_commands.append(command_tuple)
 				
 
 	def try_waiting_commands(self):
 		waiting_commands = self.waiting_commands
-		self.waiting_commands = set()
+		self.waiting_commands = list()
 		for command_tuple in waiting_commands:
 			if command_tuple[1] in self.transactions:
 				if command_tuple[0] == "READ":
@@ -157,7 +165,8 @@ class TransactionManager(object):
 		commit_time = time.time()
 		for dataid in T.uncommitted_data:
 			value = T.uncommitted_data[dataid]
-			self.site_manager.update_value(dataid, value, commit_time)
+			lock_sites = T.write_lock_sites[dataid]
+			self.site_manager.update_value(dataid, value, commit_time, lock_sites)
 
 	def __print_read_values(self,Tid):
 		T = self.transactions[Tid]
@@ -165,9 +174,12 @@ class TransactionManager(object):
 			print ("x"+str(dataid)+": "+str(value))
 
 	def __abort(self, Tid):
+		if Tid not in self.transactions:
+			print ("Transaction "+str(Tid)+" is no longer active.")
 		print ("Aborting transaction " + str(Tid))
+		#print ("Abort is done.")
 		# remove locks related to Tid
-		print ('Release locks given by transaction ' + str(Tid))
+		#print ('Release locks given by transaction ' + str(Tid))
 		T = self.transactions[Tid]
 		read_ids = list(T.read_data)
 		write_ids = list(T.uncommitted_data.keys())
@@ -178,23 +190,21 @@ class TransactionManager(object):
 		del self.transactions[Tid]
 
 		# update self.wait_for_graph
-		print ("Update wait-for-graph after abort")
+		#print ("Update wait-for-graph after abort")
 		self.__update_wait_for_graph(Tid)
 
 		# update remaining transaction status
-		print ("Update remaining active transaction status after abort")
+		#print ("Update remaining active transaction status after abort")
 		self.__update_transaction_status()
+		print ("Abort is done.")
 
 		# retry waiting commands
 		print ("Retry waiting commads after abort")
 		self.try_waiting_commands()
 
-		print ("Abort is done.")
-
 
 	def __commit(self, Tid):
 		print ("Committing transaction " + str(Tid))
-
 		T = self.transactions[Tid]
 		# If T is RW:
 		# update uncommited values
@@ -205,7 +215,7 @@ class TransactionManager(object):
 		self.__print_read_values(Tid)
 		
 		# remove locks related to Tid
-		print ('Release locks given by transaction ' + str(Tid))
+		#print ('Release locks given by transaction ' + str(Tid))
 		T = self.transactions[Tid]
 		read_ids = list(T.read_data)
 		write_ids = list(T.uncommitted_data.keys())
@@ -216,18 +226,19 @@ class TransactionManager(object):
 		del self.transactions[Tid]
 
 		# update self.wait_for_graph
-		print ("Update wait-for-graph after commit")
+		#print ("Update wait-for-graph after commit")
 		self.__update_wait_for_graph(Tid)
 
 		# update remaining transaction status
-		print ("Update remaining active transaction status after commit")
+		#print ("Update remaining active transaction status after commit")
 		self.__update_transaction_status()
+		print ("Commit is done.")
 
 		# retry waiting commands
 		print ("Retry waiting commads after commit")
 		self.try_waiting_commands()
 
-		print ("Commit is done.")
+		#print ("Commit is done.")
 
 		
 	def __visit(self,tid,path,visited):
@@ -292,10 +303,10 @@ class TransactionManager(object):
 		if Tid in self.transactions:
 			T = self.transactions[Tid]
 			if T.status == "WAIT":
-				print ("End: Transaction "+str(Tid)+" should abort.")
+				print ("End transaction "+str(Tid))
 				self.__abort(Tid)
 			else:
-				print ("End: Transaction "+str(Tid)+" should commit.")
+				print ("End transaction "+str(Tid))
 				self.__commit(Tid)
 		else:
 			print ('End: Transaction '+str(Tid)+" is no longer active.")
@@ -317,6 +328,7 @@ class TransactionManager(object):
 				if dataid in T.read_data or dataid in T.uncommitted_data:
 					abort_ids.append(Tid)
 
+		abort_ids = list(set(abort_ids))
 		for abortid in abort_ids:
 			print ("Transaction "+str(abortid)+" aborts due to site failure.")
 			self.__abort(abortid)

@@ -19,5 +19,6 @@ class Transaction(object):
 		self.read_values = []
 		self.read_data = set()
 		self.value_copies = dict()
+		self.write_lock_sites = dict()
 		self.uncommitted_data = dict()
 
