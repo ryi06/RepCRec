@@ -7,7 +7,6 @@ Ren Yi--ry708@nyu.edu
 Yanqiu Wu--yw1370@nyu.edu
 '''
 import time
-from collections import defaultdict
 
 class Transaction(object):
 	def __init__(self, ID, name, transType, status):
@@ -16,9 +15,18 @@ class Transaction(object):
 		self.type = transType
 		self.start_time = time.time()
 		self.status = status
-		self.read_values = []
-		self.read_data = set()
-		self.value_copies = dict()
-		self.write_lock_sites = dict()
-		self.uncommitted_data = dict()
+		self.read_values = dict()
+		self.value_copies = dict() # use for RO transactions
+		self.write_lock_sites = dict() # use for RW transactions
+		self.uncommitted_data = dict() # use for RW transactions
+
+	def set_status(self, status):
+		self.status = status
+
+	def get_status(self):
+		return self.status
+
+	def get_type(self):
+		return self.type
+
 
