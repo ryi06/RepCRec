@@ -141,9 +141,11 @@ class SiteManager(object):
 			if self.sites[s].status == "UP":
 				up = True
 				L, T, t = self.sites[s].check_lock(index, tid, lock_type)
+
 				locked = locked or L
-				if T is not None and T not in transactions:
-					transactions.append(T)
+				transaction.extend(x for x in T if x not in transaction)
+				types.extend(x for x in t if x not in types)
+
 				if t is not None and t not in types:
 					types.append(t)
 
