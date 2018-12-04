@@ -44,12 +44,13 @@ class SiteManager(object):
 					print(" ".join(stdout))
 
 
-	def update_value(self, index, value, time):
-		# WHat if all sites are down, can we still update values???
-		sites = get_variable_sites(index)
+	def update_value(self, index, value, time, sites):
+		# sites = get_variable_sites(index)
 		for s in sites:
 			if self.sites[s].status == "UP":
 				self.sites[s].update_value(index, value, time)
+			else:
+				print ("Wrong, this transaction should abort.")
 
 
 	def get_latest_value(self, index):
@@ -140,9 +141,11 @@ class SiteManager(object):
 			if self.sites[s].status == "UP":
 				up = True
 				L, T, t = self.sites[s].check_lock(index, tid, lock_type)
+
 				locked = locked or L
-				if T is not None and T not in transactions:
-					transactions.append(T)
+				transaction.extend(x for x in T if x not in transaction)
+				types.extend(x for x in t if x not in types)
+
 				if t is not None and t not in types:
 					types.append(t)
 

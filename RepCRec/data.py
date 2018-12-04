@@ -50,18 +50,4 @@ class Data(object):
 
 
 
-	# def update_commit_transaction(self, transaction):
-	# 	"""Upate commit time and value for committed transaction"""
-	# 	assert self.lock == transaction.ID
-		
-	# 	self.lock = None
-	# 	self.commit_time = time.time
-	# 	self.commit_value = self.uncommit_value
-	# 	self.uncommit_value = None
-		
-	# 	return
-
-
-
-
 
