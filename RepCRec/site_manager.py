@@ -169,9 +169,6 @@ class SiteManager(object):
 
 		self.sites[site].remove_read_permission()
 
-		DataManager(site, t, recover=True, num_variables=self.num_variables)
-		
-
 	def fail(self, site):
 		# Site fail 
 		self.sites[site].status = "DOWN"
