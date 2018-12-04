@@ -18,14 +18,14 @@ class Data(object):
 		   commit_time: time when commit_value is updated
 		   read_permission: boolean indicating whether the data item is ready to for reading
 	"""
-	def __init__(self, index, site, time, recover):
+	def __init__(self, index, site, time):
 
 		self.index = index
 		self.site = site
 		self.name = id2name(index)
 		self.commit_value = 10 * index
 		self.commit_time = time
-		self.read_ready = False if recover else True
+		self.read_ready = True
 		# self.uncommit_value = None
 
 

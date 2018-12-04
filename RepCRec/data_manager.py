@@ -20,7 +20,7 @@ class DataManager(object):
 		   lock_table: dictionary containing locking info for each data item
 		   			   in (<lock_transaction>, <lock_type>) tuple format
 	"""
-	def __init__(self, site, time, recover=False, num_variables=20):
+	def __init__(self, site, time, num_variables=20):
 		self.site = site
 		self.status = "UP"
 
@@ -29,7 +29,7 @@ class DataManager(object):
 		self.data = {}
 		for i in range(1, num_variables + 1):
 			if check_site(i, site):
-				self.data[i] = Data(i, site, time, recover)
+				self.data[i] = Data(i, site, time)
 				self.lock_table[i] = Lock(i, site)
 
 
@@ -92,6 +92,12 @@ class DataManager(object):
 
 	def release_lock(self, transaction, index):
 		self.lock_table[index].reset(transaction)
+
+	def remove_read_permission(self):
+		for d in self.data.keys():
+			if replicated_data(d):
+				self.data[d].read_ready = False
+
 
 
 

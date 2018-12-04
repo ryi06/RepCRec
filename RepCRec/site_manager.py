@@ -164,8 +164,9 @@ class SiteManager(object):
 		else:
 			warnings.warn("Attempting to recover an UP site %i" %site)
 
-		t = time.time()
-		self.sites[site] = DataManager(site, t, recover=True, num_variables=self.num_variables)
+		self.sites[site].remove_read_permission()
+
+		DataManager(site, t, recover=True, num_variables=self.num_variables)
 		
 
 	def fail(self, site):
