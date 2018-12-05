@@ -98,8 +98,7 @@ class TransactionManager(object):
 					T.read_values[dataid] = val
 					print ("R(T" + str(Tid) +", x"+ str(dataid) + "):")
 					print ("x"+str(dataid)+": "+str(val))
-				#else:
-				#	print ("")
+				
 		else:
 			T.set_status("RUN")
 			T.read_values[dataid] = val
@@ -164,8 +163,6 @@ class TransactionManager(object):
 					self.read(command_tuple[1],command_tuple[2])
 				else:
 					self.write(command_tuple[1],command_tuple[2],command_tuple[3])
-			#else:
-			#	print ("T"+str(command_tuple[1]) +" is no longer active.")
 
 
 	def __update_wait_for_graph(self, Tid):
@@ -192,9 +189,8 @@ class TransactionManager(object):
 		if Tid not in self.transactions:
 			print ("T"+str(Tid)+" is no longer active.")
 		print ("Aborting T" + str(Tid))
-		#print ("Abort is done.")
+		
 		# remove locks related to Tid
-		#print ('Release locks given by transaction ' + str(Tid))
 		T = self.transactions[Tid]
 		read_ids = list(T.read_values.keys())
 		write_ids = list(T.uncommitted_data.keys())
@@ -205,11 +201,9 @@ class TransactionManager(object):
 		del self.transactions[Tid]
 
 		# update self.wait_for_graph
-		#print ("Update wait-for-graph after abort")
 		self.__update_wait_for_graph(Tid)
 
 		# update remaining transaction status
-		#print ("Update remaining active transaction status after abort")
 		self.__update_transaction_status()
 		print ("Abort is done.")
 
