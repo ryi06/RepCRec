@@ -28,9 +28,8 @@ class TransactionManager(object):
 		T = Transaction(Tid, name, "RO", "RUN")
 		self.transactions[Tid] = T
 
-		# for key in self.site_manager.get_variables(): T.read_value(...) = self.site_manager.get_latest_value(...)
 		for dataid in self.site_manager.get_variables():
-			val = self.site_manager.get_latest_value(dataid)
+			val, time = self.site_manager.get_latest_value(dataid)
 			T.value_copies[dataid] = val
 
 	def write(self, Tid, dataid, value):
@@ -51,12 +50,12 @@ class TransactionManager(object):
 		site_flag, acquire_status, conflict_Ts, lock_sites = self.site_manager.acquire_locks(Tid,'WRITE',dataid)
 		# if successfully acquired
 		if acquire_status:
-			print ('T'+str(Tid) +" successfully acquires write lock on x"+str(dataid))
+			print ('T'+str(Tid) +" successfully acquires write lock(s) on x"+str(dataid))
 			# update uncommited values
 			T.uncommitted_data[dataid] = value
 			T.write_lock_sites[dataid] = lock_sites
 		else: 
-			print ('T'+str(Tid) +" is waiting for write lock on x"+str(dataid))
+			print ('T'+str(Tid) +" is waiting for write lock(s) on x"+str(dataid))
 			if site_flag:
 				# Some sites containing that dataid are up
 				# update wait-for-graph
@@ -69,23 +68,40 @@ class TransactionManager(object):
 			command_tuple = ("WRITE",Tid,dataid,value)
 			self.waiting_commands.append(command_tuple)
 
+	def __replicate(self,dataid):
+		if dataid % 2 == 0:
+			return True	
+		else:
+			return False
 
 	def read_only(self, Tid, dataid):
 		T = self.transactions[Tid]
 
-		if T.get_status() != "RUN":
-			command_tuple = ("READ",Tid,dataid)
-			self.waiting_commands.append(command_tuple)
-			return
 		# get the latest committed value of dataid from value copies
 		# if all sites are down, no site to read
 		val = T.value_copies[dataid]
 		if val is None:
-			T.set_status("WAIT")
-			command_tuple = ("READ",Tid,dataid)
-			self.waiting_commands.append(command_tuple)
-			print ("All available sites are down. T" + str(Tid) +" is waiting on(RO) data "+ str(dataid))
+			# if x is unreplicated data:
+			if not self.__replicate(dataid):
+				val, time = self.site_manager.get_latest_value(dataid)
+			else:
+				print ('All sites are down for replicated data x'+str(dataid)+", so abort T "+str(Tid))
+				self.__abort(Tid)
+			if val is None:
+				T.set_status("WAIT")
+				command_tuple = ("READ",Tid,dataid)
+				self.waiting_commands.append(command_tuple)
+				print ("All available sites are down. T" + str(Tid) +" is waiting on(RO) data "+ str(dataid))
+			else:
+				if time < T.start_time:
+					T.set_status("RUN")
+					T.read_values[dataid] = val
+					print ("R(T" + str(Tid) +", x"+ str(dataid) + "):")
+					print ("x"+str(dataid)+": "+str(val))
+				#else:
+				#	print ("")
 		else:
+			T.set_status("RUN")
 			T.read_values[dataid] = val
 			print ("R(T" + str(Tid) +", x"+ str(dataid) + "):")
 			print ("x"+str(dataid)+": "+str(val))
@@ -95,16 +111,16 @@ class TransactionManager(object):
 		if Tid not in self.transactions:
 			return
 		T = self.transactions[Tid]
-		if T.get_status() != "RUN":
-			# add the command to list
-			command_tuple = ("READ",Tid,dataid)
-			self.waiting_commands.append(command_tuple)
-			return   
 		# read_only transaction read                                      
 		if T.get_type() == 'RO':
 			self.read_only(Tid,dataid)
 		# regular read
 		else:
+			if T.get_status() != "RUN":
+				# add the command to list
+				command_tuple = ("READ",Tid,dataid)
+				self.waiting_commands.append(command_tuple)
+				return   
 			site_flag, acquire_status, conflict_Ts, lock_sites = self.site_manager.acquire_locks(Tid,'READ',dataid)
 			# if successfully acquired
 			if acquire_status:
@@ -302,16 +318,19 @@ class TransactionManager(object):
 			T = self.transactions[Tid]
 			if T.get_status() == "WAIT":
 				print ("End T"+str(Tid))
-				self.__abort(Tid)
+				#self.__abort(Tid)
+				print ('T ' +str(Tid) +" is still waiting.")
 			else:
 				print ("End T"+str(Tid))
 				self.__commit(Tid)
-		else:
-			print ('End: T'+str(Tid)+" is no longer active.")
+		#else:
+			#print ('End: T'+str(Tid)+" is no longer active.")
 
 
 	def recover(self, siteid):
+		print ("Site "+str(siteid) + " recovers.")
 		self.site_manager.recover(siteid)
+		self.try_waiting_commands()
 
 
 	def fail(self, siteid):
