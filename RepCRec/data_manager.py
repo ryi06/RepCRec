@@ -63,13 +63,13 @@ class DataManager(object):
 				self.data[index].read_permission())
 
 	
-	def check_lock(self, index, transaction, lock_type):
-		curr_locked, curr_txn, curr_type = self.lock_table[index].get_status()
-		# If this site is already locked by the same transaction, it is considered lock free
-		if (curr_locked) and curr_txn == transaction:
-			return (False, None, None)
+	# def check_lock(self, index, transaction, lock_type):
+	# 	curr_locked, curr_txn, curr_type = self.lock_table[index].get_status()
+	# 	# If this site is already locked by the same transaction, it is considered lock free
+	# 	if (curr_locked) and transaction in curr_txn:
+	# 		return (False, None, None)
 
-		return (curr_locked, curr_txn, curr_type)
+	# 	return (curr_locked, curr_txn, curr_type)
 
 
 	def add_lock(self, index, transaction, lock_type):
@@ -80,7 +80,15 @@ class DataManager(object):
 		# if read lock already exists and lock_type == "WRITE", change to lock_type
 		# if write lock already exist and lock_type == "READ", do nothing
 		'''
-		return self.lock_table[index].add_lock_transaction(transaction, lock_type)
+		acquired, curr_txn = self.lock_table[index].add_lock_transaction(transaction, lock_type, check_lock=True)
+		# If read-only transaction, you can only acquire lock if READ is permitted
+		if lock_type == 'READ' and not self.data[index].read_permission():
+			acquired = False
+
+		if acquired:
+			self.self.lock_table[index].add_lock_transaction(transaction, lock_type)
+
+		return (acquired, curr_txn)
 
 		# curr_txn = self.lock_table[index].get_transaction()
 		# if (curr_txn is not None) and (curr_txn != transaction):
