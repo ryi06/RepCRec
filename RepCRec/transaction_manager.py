@@ -11,7 +11,10 @@ from .transaction import Transaction
 from collections import defaultdict
 
 class TransactionManager(object):
-	"""docstring for TransactionManager"""
+	"""
+		docstring for TransactionManager
+		Transaction manager manages all transactions
+	"""
 	def __init__(self, site_manager):
 		super(TransactionManager, self).__init__()
 		self.transactions = dict()
@@ -21,10 +24,23 @@ class TransactionManager(object):
 
 
 	def begin(self, Tid, name):
+		"""
+			initialize a read-write transaction
+			Tid: transaction index
+			name: transaction name
+			and store it in the transaction manager
+		"""
 		T = Transaction(Tid, name, "RW", "RUN")
 		self.transactions[Tid] = T
 
 	def begin_RO(self, Tid, name):
+		"""
+			initialize a read-only transaction
+			Tid: transaction index
+			name: transaction name
+			store it in the transaction manager
+			and get a copy of latest committed values of all data items
+		"""
 		T = Transaction(Tid, name, "RO", "RUN")
 		self.transactions[Tid] = T
 
@@ -33,6 +49,14 @@ class TransactionManager(object):
 			T.value_copies[dataid] = val
 
 	def write(self, Tid, dataid, value):
+		"""
+			dataid: data index
+			value: the value transaction tries to write
+			transaction manager will communicate with site manager and get lock acquisition info of
+			Tid on dataid
+			if successfully acquire lock, store written value in transaction
+			otherwise, commad wait and added to wating commands.
+		"""
 		if Tid not in self.transactions:
 			#print('T' + str(Tid) + " not exist.")
 			return
@@ -55,26 +79,37 @@ class TransactionManager(object):
 			T.uncommitted_data[dataid] = value
 			T.write_lock_sites[dataid] = lock_sites
 		else: 
-			print ('T'+str(Tid) +" is waiting for write lock(s) on x"+str(dataid))
-			if site_flag:
-				# Some sites containing that dataid are up
+			# All sites containing that dataid are down
+			if not site_flag:
+				print ("All sites are down for x"+str(dataid))
+				print ('T'+str(Tid) +" is waiting to write on x"+str(dataid))
+			else:
+				print ('T'+str(Tid) +" is waiting for write lock(s) on x"+str(dataid))
 				# update wait-for-graph
 				# ct here is the index of each conflicting transaction
 				for ct in conflict_Ts:
 					self.wait_for_graph[ct].append(Tid)
-			# change the transaction status to wait
-			T.set_status("WAIT")
+				# change the transaction status to wait
+				T.set_status("WAIT")
 			# add the command to list
 			command_tuple = ("WRITE",Tid,dataid,value)
 			self.waiting_commands.append(command_tuple)
 
 	def __replicate(self,dataid):
+		"""
+			decide whether data item is replicated data or not
+		"""
 		if dataid % 2 == 0:
 			return True	
 		else:
 			return False
 
 	def read_only(self, Tid, dataid):
+		"""
+			read the latest committed value (before Tid begins) of dataid
+			if the all sites are fail for dataid before Tid begins
+			Tid waits until site recovers
+		"""
 		T = self.transactions[Tid]
 
 		# get the latest committed value of dataid from value copies
@@ -85,13 +120,13 @@ class TransactionManager(object):
 			if not self.__replicate(dataid):
 				val, time = self.site_manager.get_latest_value(dataid)
 			else:
-				print ('All sites are down for replicated data x'+str(dataid)+", so abort T "+str(Tid))
+				print ('All sites are down for replicated data x'+str(dataid))
 				self.__abort(Tid)
 			if val is None:
-				T.set_status("WAIT")
 				command_tuple = ("READ",Tid,dataid)
 				self.waiting_commands.append(command_tuple)
-				print ("All available sites are down. T" + str(Tid) +" is waiting on(RO) data "+ str(dataid))
+				print ("All sites are down for x"+str(dataid))
+				print ("T" + str(Tid) +" is waiting on(RO) x"+ str(dataid))
 			else:
 				if time < T.start_time:
 					T.set_status("RUN")
@@ -107,19 +142,26 @@ class TransactionManager(object):
 
 
 	def read(self, Tid, dataid):
+		"""
+			If transaction is read_only, call read_only function
+			otherwise, transaction manager will comminicate with site manager to receive read lock acquisition info
+			of Tid on dataid
+			if successfully aquired, we print out the read value
+			otherwise, Tid waits and command gets added to waiting command queue
+		"""
 		if Tid not in self.transactions:
 			return
 		T = self.transactions[Tid]
+		if T.get_status() != "RUN":
+			# add the command to list
+			command_tuple = ("READ",Tid,dataid)
+			self.waiting_commands.append(command_tuple)
+			return   
 		# read_only transaction read                                      
 		if T.get_type() == 'RO':
 			self.read_only(Tid,dataid)
 		# regular read
 		else:
-			if T.get_status() != "RUN":
-				# add the command to list
-				command_tuple = ("READ",Tid,dataid)
-				self.waiting_commands.append(command_tuple)
-				return   
 			site_flag, acquire_status, conflict_Ts, lock_sites = self.site_manager.acquire_locks(Tid,'READ',dataid)
 			# if successfully acquired
 			if acquire_status:
@@ -144,17 +186,25 @@ class TransactionManager(object):
 			else:
 				# update wait-for-graph
 				# ct here is the index of each conflicting transaction
-				print ('T' + str(Tid) + " is waiting for read lock on x"+str(dataid))
-				for ct in conflict_Ts:
-					self.wait_for_graph[ct].append(Tid)
-				# change the transaction status to wait
-				T.set_status("WAIT")
+				if not site_flag:
+					# all sites are down
+					print ("All sites are down for x"+str(dataid))
+					print ("T"+str(Tid)+" is waiting to read x"+str(dataid))
+				else:
+					print ('T' + str(Tid) + " is waiting for read lock on x"+str(dataid))
+					for ct in conflict_Ts:
+						self.wait_for_graph[ct].append(Tid)
+					# change the transaction status to wait
+					T.set_status("WAIT")
 				# add the command to list
 				command_tuple = ("READ",Tid,dataid)
 				self.waiting_commands.append(command_tuple)
 				
 
 	def try_waiting_commands(self):
+		"""
+			recall command in the watiitng commad queue
+		"""
 		waiting_commands = self.waiting_commands
 		self.waiting_commands = list()
 		for command_tuple in waiting_commands:
@@ -166,10 +216,18 @@ class TransactionManager(object):
 
 
 	def __update_wait_for_graph(self, Tid):
+		"""
+			update wait for graph after commit or abort Tid
+			we remove the edges where other transactions are waiting for Tid
+		"""
 		if Tid in self.wait_for_graph:
 			 del self.wait_for_graph[Tid]
 
 	def __update_transaction_status(self):
+		"""
+			update transaction_status, usually happen after we update wait_for_graph
+			if the transaction is no longer in the wait-for-graph, we change it status to "RUN"
+		"""
 		wait_list = []
 		for id_list in self.wait_for_graph.values():
 			wait_list += id_list
@@ -178,6 +236,10 @@ class TransactionManager(object):
 				self.transactions[tid].set_status("RUN")
 
 	def __update_uncommitted_value(self, Tid):
+		"""
+			When transaction Tid commits, transaction manager will communicate with site manager
+			to update the committed values of dataids that has been written by transaction Tid.
+		"""
 		T = self.transactions[Tid]
 		commit_time = time.time()
 		for dataid in T.uncommitted_data:
@@ -186,6 +248,14 @@ class TransactionManager(object):
 			self.site_manager.update_value(dataid, value, commit_time, lock_sites)
 
 	def __abort(self, Tid):
+		"""
+			abort transaction Tid
+			remove the transaction from transaction manager,
+			release locks hold be the transaction
+			update the wait-for-graph
+			update transaction status of other transactions
+			retry waiting commands 
+		"""
 		if Tid not in self.transactions:
 			print ("T"+str(Tid)+" is no longer active.")
 		print ("Aborting T" + str(Tid))
@@ -214,6 +284,15 @@ class TransactionManager(object):
 
 
 	def __commit(self, Tid):
+		"""
+			commit transaction Tid
+			update the committed values of data items written by Tid if Tid is read-write 
+			remove the transaction from transaction manager,
+			release locks hold be the transaction
+			update the wait-for-graph
+			update transaction status of other transactions
+			retry waiting commands 
+		"""
 		print ("Committing T" + str(Tid))
 		T = self.transactions[Tid]
 		# If T is RW:
@@ -250,6 +329,9 @@ class TransactionManager(object):
 
 		
 	def __visit(self,tid,path,visited):
+		"""
+			recursive function to detect cycles in the wait-for-graph
+		"""
 		if tid in visited:
 			return False, path, visited
 		visited.add(tid)
@@ -264,6 +346,10 @@ class TransactionManager(object):
 		return False, path, visited
 
 	def __detect_deadlock(self):
+		"""
+			DFS
+			call recursive function to detect deadlocks
+		"""
 		path = set()
 		visited = set()
 
@@ -277,6 +363,10 @@ class TransactionManager(object):
 		return False, path
 				
 	def clear_deadlocks(self):
+		"""
+			keep finding deadlocks and abort the youngest transaction to eliminate deadlock
+			until no deadlocks can be found.
+		"""
 		cycle, path = self.__detect_deadlock()
 		while cycle == True:
 			if path:
@@ -304,10 +394,18 @@ class TransactionManager(object):
 
 
 	def dump(self, sites=None, indices=None):
+		"""
+			dump data values
+		"""
 		self.site_manager.dump(sites, indices)
 
 
 	def end(self, Tid):
+		"""
+			We will not end waiting transaction
+			since we abort transactions inmmediately after site failure or deadlocks,
+			we only commit transaction in the end function
+		"""
 		if Tid in self.transactions:
 			T = self.transactions[Tid]
 			if T.get_status() == "WAIT":
@@ -322,12 +420,20 @@ class TransactionManager(object):
 
 
 	def recover(self, siteid):
+		"""
+			transaction manager asks site manager to recover site siteid
+			then retry all the waiting commands
+		"""
 		print ("Site "+str(siteid) + " recovers.")
 		self.site_manager.recover(siteid)
 		self.try_waiting_commands()
 
 
 	def fail(self, siteid):
+		"""
+			transaction manager asks site manager to recover site siteid
+			then transaction manager aborts all transactions that have accessed the site
+		"""
 		print ("Site "+str(siteid) + " fails.")
 		self.site_manager.fail(siteid)
 
