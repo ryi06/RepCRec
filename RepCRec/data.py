@@ -10,7 +10,7 @@ from .utils import *
 
 class Data(object):
 	"""
-	Object Data store data item at a particular site
+	Object Data stores data item at a particular site
 	
 	Attrs: site: data item storage site
 		   index: data item index
@@ -30,14 +30,17 @@ class Data(object):
 
 
 	def get_value(self):
+		'''return committed value'''
 		return self.commit_value
 
 
 	def get_time(self):
+		'''return commit time'''
 		return self.commit_time
 
 
 	def read_permission(self):
+		'''return boolean whether data variable is ready for read'''
 		return self.read_ready
 
 

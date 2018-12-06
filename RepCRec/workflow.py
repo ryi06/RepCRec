@@ -36,7 +36,6 @@ class Workflow(object):
 	def parse_instruction(self, record):
 		"""parse transaction instructions one line at a tine"""
 		record = record.split("//")[0].strip()
-		print(record)
 		keyword, params, _ = re.split(r'\((.*)\)', record)
 		return (keyword, params)
 
