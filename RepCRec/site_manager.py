@@ -177,6 +177,8 @@ class SiteManager(object):
 	def fail(self, site):
 		# Site fail 
 		self.sites[site].status = "DOWN"
+		self.sites[site].clear_locks()
+
 
 
 	def get_value(self,siteid,dataid):

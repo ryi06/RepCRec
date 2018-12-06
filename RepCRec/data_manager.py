@@ -86,7 +86,7 @@ class DataManager(object):
 			acquired = False
 
 		if acquired:
-			self.self.lock_table[index].add_lock_transaction(transaction, lock_type)
+			self.lock_table[index].add_lock_transaction(transaction, lock_type)
 
 		return (acquired, curr_txn)
 
@@ -107,6 +107,12 @@ class DataManager(object):
 		for d in self.data.keys():
 			if replicated_data(d):
 				self.data[d].read_ready = False
+
+
+	def clear_locks(self):
+		for data_id in self.lock_table:
+			self.lock_table[data_id].clear()
+
 
 
 

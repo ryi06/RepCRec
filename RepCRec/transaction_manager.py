@@ -34,7 +34,7 @@ class TransactionManager(object):
 
 	def write(self, Tid, dataid, value):
 		if Tid not in self.transactions:
-			print('T' + str(Tid) + " not exist.")
+			#print('T' + str(Tid) + " not exist.")
 			return
 		# get T
 		T = self.transactions[Tid]

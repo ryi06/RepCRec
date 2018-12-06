@@ -18,6 +18,10 @@ class Lock(object):
 	def get_transaction(self):
 		return self.lock_txn
 
+	def clear(self):
+		self.lock_txn = []
+		self.lock_type = None
+
 
 	# def check_lock(self, new_txn, new_type):
 	# 	'''
@@ -60,8 +64,9 @@ class Lock(object):
 		"""
 		Append unique transactions
 		"""		
-		self.lock_txn.extend(new_txn if new_txn not in self.lock_txn)
-
+		#self.lock_txn.extend(new_txn if new_txn not in self.lock_txn)
+		if new_txn not in self.lock_txn:
+			self.lock_txn.append(new_txn)
 
 
 	def add_lock_transaction(self, new_txn, new_type, check_lock=False):
@@ -114,7 +119,8 @@ class Lock(object):
 		else:
 			if new_type == "READ":
 				if check_lock:
-					return (True, [], self.lock_type)
+					#return (True, [], self.lock_type)
+					return (True, [])
 				self.__add_transaction(new_txn)
 				self.__add_lock_type(new_type)
 				return
@@ -123,7 +129,15 @@ class Lock(object):
 				if len(self.lock_txn) > 1:
 					if check_lock:
 						# return (False, self.lock_txn, self.lock_type)
-						return (False, self.lock_txn)
+						# return (False, self.lock_txn)
+						# self.lock_txn may contain new_txn so we should remove it if it does
+						if new_txn in self.lock_txn:
+							# can not directly remove from self.lock_txn
+							con_txn = self.lock_txn
+							con_txn.remove(new_txn)
+							return (False, con_txn)
+						else:
+							return (False, self.lock_txn)
 					return
 					# return False
 				else:
@@ -143,13 +157,15 @@ class Lock(object):
 
 
 	def reset(self, transaction):
-		# if self.__locked():
-			# assert transaction == self.lock_txn
-		if len(self.lock_txn) > 1:
+		# if len(self.lock_txn) > 1:
+		# 	self.lock_txn.remove(transaction)
+		# else:
+		# 	if self.lock_txn[0] == transaction:
+		# 		self.lock_txn = []
+		# 		self.lock_type = None
+		if transaction in self.lock_txn:
 			self.lock_txn.remove(transaction)
-		else:
-			if self.lock_txn[0] == transaction:
-				self.lock_txn = []
+			if len(self.lock_txn) == 0:
 				self.lock_type = None
 
 
