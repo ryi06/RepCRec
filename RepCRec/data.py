@@ -10,13 +10,13 @@ from .utils import *
 
 class Data(object):
 	"""
-	Object Data store data item at a particular site
+	Object Data stores data item at a particular site
 	
 	Attrs: site: data item storage site
 		   index: data item index
 		   commit_value: committed value at this site
 		   commit_time: time when commit_value is updated
-		   read_permission: boolean indicating whether the data item is ready to for reading
+		   read_ready: boolean indicating whether the data item is ready to for reading
 	"""
 	def __init__(self, index, site, time):
 
@@ -30,19 +30,22 @@ class Data(object):
 
 
 	def get_value(self):
+		'''return committed value'''
 		return self.commit_value
 
 
 	def get_time(self):
+		'''return commit time'''
 		return self.commit_time
 
 
 	def read_permission(self):
+		'''return boolean whether data variable is ready for read'''
 		return self.read_ready
 
 
 	def update_value(self, value, time):
-		"""If data item is lock free, active transaction writes to uncommit_value"""
+		"""Update commit_value when transaction commits"""
 		self.commit_value  = value
 		self.commit_time = time
 		self.read_ready = True
