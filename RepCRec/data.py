@@ -18,14 +18,14 @@ class Data(object):
 		   commit_time: time when commit_value is updated
 		   read_permission: boolean indicating whether the data item is ready to for reading
 	"""
-	def __init__(self, index, site, time, recover):
+	def __init__(self, index, site, time):
 
 		self.index = index
 		self.site = site
 		self.name = id2name(index)
 		self.commit_value = 10 * index
 		self.commit_time = time
-		self.read_ready = False if recover else True
+		self.read_ready = True
 		# self.uncommit_value = None
 
 
@@ -46,20 +46,6 @@ class Data(object):
 		self.commit_value  = value
 		self.commit_time = time
 		self.read_ready = True
-
-
-
-
-	# def update_commit_transaction(self, transaction):
-	# 	"""Upate commit time and value for committed transaction"""
-	# 	assert self.lock == transaction.ID
-		
-	# 	self.lock = None
-	# 	self.commit_time = time.time
-	# 	self.commit_value = self.uncommit_value
-	# 	self.uncommit_value = None
-		
-	# 	return
 
 
 

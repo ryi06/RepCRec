@@ -20,7 +20,7 @@ class DataManager(object):
 		   lock_table: dictionary containing locking info for each data item
 		   			   in (<lock_transaction>, <lock_type>) tuple format
 	"""
-	def __init__(self, site, time, recover=False, num_variables=20):
+	def __init__(self, site, time, num_variables=20):
 		self.site = site
 		self.status = "UP"
 
@@ -29,7 +29,7 @@ class DataManager(object):
 		self.data = {}
 		for i in range(1, num_variables + 1):
 			if check_site(i, site):
-				self.data[i] = Data(i, site, time, recover)
+				self.data[i] = Data(i, site, time)
 				self.lock_table[i] = Lock(i, site)
 
 
@@ -63,13 +63,13 @@ class DataManager(object):
 				self.data[index].read_permission())
 
 	
-	def check_lock(self, index, transaction, lock_type):
-		curr_locked, curr_txn, curr_type = self.lock_table[index].get_status()
-		# If this site is already locked by the same transaction, it is considered lock free
-		if (curr_locked) and curr_txn == transaction:
-			return (False, None, None)
+	# def check_lock(self, index, transaction, lock_type):
+	# 	curr_locked, curr_txn, curr_type = self.lock_table[index].get_status()
+	# 	# If this site is already locked by the same transaction, it is considered lock free
+	# 	if (curr_locked) and transaction in curr_txn:
+	# 		return (False, None, None)
 
-		return (curr_locked, curr_txn, curr_type)
+	# 	return (curr_locked, curr_txn, curr_type)
 
 
 	def add_lock(self, index, transaction, lock_type):
@@ -80,59 +80,34 @@ class DataManager(object):
 		# if read lock already exists and lock_type == "WRITE", change to lock_type
 		# if write lock already exist and lock_type == "READ", do nothing
 		'''
-		curr_txn = self.lock_table[index].get_transaction()
-		if (curr_txn is not None) and (curr_txn != transaction):
-			return False
-		if (lock_type == "READ") and (not self.data[index].read_permission()):
-			return False
+		acquired, curr_txn = self.lock_table[index].add_lock_transaction(transaction, lock_type, check_lock=True)
+		# If read-only transaction, you can only acquire lock if READ is permitted
+		if lock_type == 'READ' and not self.data[index].read_permission():
+			acquired = False
 
-		self.lock_table[index].add_transaction(transaction)
-		self.lock_table[index].add_lock_type(lock_type)
-		return True
+		if acquired:
+			self.self.lock_table[index].add_lock_transaction(transaction, lock_type)
+
+		return (acquired, curr_txn)
+
+		# curr_txn = self.lock_table[index].get_transaction()
+		# if (curr_txn is not None) and (curr_txn != transaction):
+		# 	return False
+		# if (lock_type == "READ") and (not self.data[index].read_permission()):
+		# 	return False
+
+		# self.lock_table[index].add_transaction(transaction)
+		# self.lock_table[index].add_lock_type(lock_type)
+		# return True
 
 	def release_lock(self, transaction, index):
 		self.lock_table[index].reset(transaction)
 
+	def remove_read_permission(self):
+		for d in self.data.keys():
+			if replicated_data(d):
+				self.data[d].read_ready = False
 
-
-
-		
-	# def insert_data(self, index, data=None):
-	# 	"""Insert new data object into Data Manager"""
-	# 	name = id2name(index)
-	# 	index = name2id(index)
-
-	# 	if data is None:
-	# 		assert check_site(index, self.site)
-	# 		self.data[name] = Data(index, self.site)
-	# 	else:
-	# 		assert check_site(data.index, self.site)
-	# 		self.data[name] = data
-
-	# def get_data(self, index=None, value=False):
-	# 	"""Given data index/name, return data dictionry/data object/data object commit_value"""
-	# 	if name is None:
-	# 		return self.data
-
-	# 	name = id2name(index)
-	# 	index = name2id(index)
-
-	# 	assert check_site(index, self.site)
-	# 	data = self.data[name]
-
-	# 	if value:
-	# 		return data.commit_value
-	# 	else:
-	# 		return data
-
-
-	# def check_lock_status(self, index):
-	# 	"""Return the locking status of a certain data object at a particular site"""
-	# 	name = id2name(index)
-	# 	index = name2id(index)
-
-	# 	assert check_site(index, self.site)
-	# 	return self.data[name].lock
 
 
 

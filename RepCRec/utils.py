@@ -19,6 +19,9 @@ def get_variable_sites(index):
 	else:
 		return range(1, num_sites + 1)
 
+def replicated_data(index):
+	return index % 2 == 0
+
 def check_site(index, site):
 	"""
 	Check is a particular variable is at site
