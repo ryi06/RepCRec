@@ -18,39 +18,6 @@ class Lock(object):
 	def get_transaction(self):
 		return self.lock_txn
 
-	def clear(self):
-		self.lock_txn = []
-		self.lock_type = None
-
-
-	# def check_lock(self, new_txn, new_type):
-	# 	'''
-	# 	if old lock is write:
-	# 		there can be only one transaction locking the item
-	# 		if new lock is write: new txn needs to be the same of old txn, otherwise cannot acquire lock
-	# 		if new lock is read: new txn needs to be the same as old txn, otherwise cannot acquire lock
-
-	# 	if old lock is read:
-	# 		if new lock is read: can acquire lock
-	# 		if new lock is write: 
-	# 			if multiple read transactions already exist, cannot acquire lock
-	# 			if only single transaction:
-	# 				if the single transaciton is the same as new txn, acquire lock and update type, 
-	# 				otherwise cannot acquire lock
-
-	# 	'''
-	# 	if self.lock_type == "WRITE":
-	# 		assert len(self.lock_txn) == 1
-	# 		if self.lock_txn[0] != new_txn:
-	# 			return False
-	# 		else:
-	# 			return True
-	# 	if self.lock_type == "READ":
-	# 		if new_type == "READ":
-	# 			return ([], [])
-
-
-
 
 	def __add_lock_type(self, new_type):
 		"""
@@ -156,17 +123,16 @@ class Lock(object):
 						# return False
 
 
-	def reset(self, transaction):
-		# if len(self.lock_txn) > 1:
-		# 	self.lock_txn.remove(transaction)
-		# else:
-		# 	if self.lock_txn[0] == transaction:
-		# 		self.lock_txn = []
-		# 		self.lock_type = None
+	def clear(self, transaction):
+		'''Clear locks after transaction has committed'''
 		if transaction in self.lock_txn:
 			self.lock_txn.remove(transaction)
 			if len(self.lock_txn) == 0:
 				self.lock_type = None
+
+	def reset(self):
+		self.lock_txn = []
+		self.lock_type = None
 
 
 	def get_status(self):

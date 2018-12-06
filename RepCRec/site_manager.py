@@ -128,34 +128,6 @@ class SiteManager(object):
 
 		return (up, acquired, conflict_txn, lock_sites)
 
-
-	# def __check_locks(self, sites, index, tid, lock_type):
-	# 	"""
-	# 	Given a data index, check whether it has a lock, if so, what type
-	# 	"""
-	# 	up = False
-	# 	locked = False
-	# 	transactions = []
-	# 	types = []
-
-	# 	for s in sites:
-	# 		if self.sites[s].status == "UP":
-	# 			up = True
-	# 			# if lock_type == "READ":
-	# 			# 	up = True if self.sites[s].read_permission(index) else False
-	# 			# else:
-	# 			# 	up = True
-	# 			L, T, t = self.sites[s].check_lock(index, tid, lock_type)
-
-	# 			locked = locked or L
-	# 			transaction.extend(x for x in T if x not in transaction)
-	# 			types.extend(x for x in t if x not in types)
-
-	# 			if t is not None and t not in types:
-	# 				types.append(t)
-
-	# 	return (up, locked, transactions, types)
-
 	
 	def release_locks(self, transaction, indices):
 		for index in indices:
@@ -177,7 +149,7 @@ class SiteManager(object):
 	def fail(self, site):
 		# Site fail 
 		self.sites[site].status = "DOWN"
-		self.sites[site].clear_locks()
+		self.sites[site].reset_locks()
 
 
 

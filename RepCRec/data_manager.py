@@ -101,17 +101,17 @@ class DataManager(object):
 		# return True
 
 	def release_lock(self, transaction, index):
-		self.lock_table[index].reset(transaction)
+		self.lock_table[index].clear(transaction)
 
 	def remove_read_permission(self):
-		for d in self.data.keys():
-			if replicated_data(d):
-				self.data[d].read_ready = False
+		for index in self.data.keys():
+			if replicated_data(index):
+				self.data[index].read_ready = False
 
 
-	def clear_locks(self):
-		for data_id in self.lock_table:
-			self.lock_table[data_id].clear()
+	def reset_locks(self):
+		for index in self.lock_table.keys():
+			self.lock_table[index].reset()
 
 
 

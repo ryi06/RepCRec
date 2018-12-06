@@ -26,16 +26,17 @@ class Workflow(object):
 		"""Process the input transaction file"""
 		with open(self.file_name, 'r') as T:
 			for line in T:
-				record = line.lstrip(' ')
-				if record.startswith("//"):
-					continue
-				record = self.parse_instruction(record.strip())
-				self.distribute_instruction(record)
+				# if record.startswith("//") or record.startswith(" "):
+				# 	continue
+				if line and line[0].isalpha():
+					record = self.parse_instruction(line)
+					self.distribute_instruction(record)
 
 
 	def parse_instruction(self, record):
 		"""parse transaction instructions one line at a tine"""
 		record = record.split("//")[0].strip()
+		print(record)
 		keyword, params, _ = re.split(r'\((.*)\)', record)
 		return (keyword, params)
 

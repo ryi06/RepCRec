@@ -16,7 +16,7 @@ class Data(object):
 		   index: data item index
 		   commit_value: committed value at this site
 		   commit_time: time when commit_value is updated
-		   read_permission: boolean indicating whether the data item is ready to for reading
+		   read_ready: boolean indicating whether the data item is ready to for reading
 	"""
 	def __init__(self, index, site, time):
 
@@ -42,7 +42,7 @@ class Data(object):
 
 
 	def update_value(self, value, time):
-		"""If data item is lock free, active transaction writes to uncommit_value"""
+		"""Update commit_value when transaction commits"""
 		self.commit_value  = value
 		self.commit_time = time
 		self.read_ready = True
