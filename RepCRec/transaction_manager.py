@@ -14,8 +14,10 @@ from collections import defaultdict
 
 class TransactionManager(object):
 	"""
-		docstring for TransactionManager
-		Transaction manager manages all transactions
+		Transaction manager manages all transactions,
+		is in charge of transaction commands, including
+		begin(), beginRO(), read(), write(), end(), dump(), etc.
+		Transaction manager also detects deadlocks
 	"""
 	def __init__(self, site_manager):
 		super(TransactionManager, self).__init__()
@@ -52,12 +54,13 @@ class TransactionManager(object):
 
 	def write(self, Tid, dataid, value):
 		"""
+			Tid: transaction index
 			dataid: data index
 			value: the value transaction tries to write
-			transaction manager will communicate with site manager and get lock acquisition info of
-			Tid on dataid
+			transaction manager will communicate with site manager 
+			and get lock acquisition info ofTid on dataid
 			if successfully acquire lock, store written value in transaction
-			otherwise, commad wait and added to wating commands.
+			otherwise, transaction waits and add the command into waiting commands.
 		"""
 		if Tid not in self.transactions:
 			#print('T' + str(Tid) + " not exist.")
@@ -106,7 +109,7 @@ class TransactionManager(object):
 		else:
 			return False
 
-	def read_only(self, Tid, dataid):
+	def __read_only(self, Tid, dataid):
 		"""
 			read the latest committed value (before Tid begins) of dataid
 			if the all sites are fail for dataid before Tid begins
@@ -161,7 +164,7 @@ class TransactionManager(object):
 			return   
 		# read_only transaction read                                      
 		if T.get_type() == 'RO':
-			self.read_only(Tid,dataid)
+			self.__read_only(Tid,dataid)
 		# regular read
 		else:
 			site_flag, acquire_status, conflict_Ts, lock_sites = self.site_manager.acquire_locks(Tid,'READ',dataid)
@@ -206,7 +209,7 @@ class TransactionManager(object):
 				self.waiting_commands.append(command_tuple)
 				
 
-	def try_waiting_commands(self):
+	def __try_waiting_commands(self):
 		"""
 			recall command in the watiitng commad queue
 		"""
@@ -230,8 +233,10 @@ class TransactionManager(object):
 
 	def __update_transaction_status(self):
 		"""
-			update transaction_status, usually happen after we update wait_for_graph
-			if the transaction is no longer in the wait-for-graph, we change it status to "RUN"
+			update transaction_status, usually 
+			happen after we update wait_for_graph
+			if the transaction is no longer in the 
+			wait-for-graph, we change it status to "RUN"
 		"""
 		wait_list = []
 		for id_list in self.wait_for_graph.values():
@@ -242,8 +247,10 @@ class TransactionManager(object):
 
 	def __update_uncommitted_value(self, Tid):
 		"""
-			When transaction Tid commits, transaction manager will communicate with site manager
-			to update the committed values of dataids that has been written by transaction Tid.
+			When transaction Tid commits, transaction manager 
+			will communicate with site manager
+			to update the committed values of dataids
+			that has been written by transaction Tid.
 		"""
 		T = self.transactions[Tid]
 		commit_time = time.time()
@@ -285,7 +292,7 @@ class TransactionManager(object):
 		# retry waiting commands if there is any
 		if self.waiting_commands:
 			print ("Retry waiting commads after abort")
-			self.try_waiting_commands()
+			self.__try_waiting_commands()
 
 
 	def __commit(self, Tid):
@@ -328,7 +335,7 @@ class TransactionManager(object):
 		# retry waiting commands if there is any
 		if self.waiting_commands:
 			print ("Retry waiting commads after commit")
-			self.try_waiting_commands()
+			self.__try_waiting_commands()
 
 		#print ("Commit is done.")
 
@@ -354,6 +361,7 @@ class TransactionManager(object):
 		"""
 			DFS
 			call recursive function to detect deadlocks
+			and store the path of the cycle if any
 		"""
 		path = set()
 		visited = set()
@@ -426,18 +434,21 @@ class TransactionManager(object):
 
 	def recover(self, siteid):
 		"""
+			recover site(siteid)
 			transaction manager asks site manager to recover site siteid
 			then retry all the waiting commands
 		"""
 		print ("Site "+str(siteid) + " recovers.")
 		self.site_manager.recover(siteid)
-		self.try_waiting_commands()
+		self.__try_waiting_commands()
 
 
 	def fail(self, siteid):
 		"""
-			transaction manager asks site manager to recover site siteid
-			then transaction manager aborts all transactions that have accessed the site
+			fail site(siteid)
+			transaction manager asks site manager to fail site siteid
+			then transaction manager aborts 
+			all transactions that accessed that site
 		"""
 		print ("Site "+str(siteid) + " fails.")
 		self.site_manager.fail(siteid)
