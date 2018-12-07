@@ -16,6 +16,7 @@ from .utils import *
 class Workflow(object):
 	def __init__(self):
 		self.file_name = None
+		self.stdin = None
 
 	def run(self):
 		# Initialize database
@@ -25,15 +26,21 @@ class Workflow(object):
 		self.process_instructions()
 
 	def process_instructions(self):
-		"""Process the input transaction file"""
-		with open(self.file_name, 'r') as T:
-			for line in T:
-				# if record.startswith("//") or record.startswith(" "):
-				# 	continue
-				if line and line[0].isalpha():
-					record = self.parse_instruction(line)
-					self.distribute_instruction(record)
+		"""Process stdin or input file"""
+		if self.file_name is not None:
+			T = open(self.file_name, 'r')
+		else:
+			T = self.stdin
 
+		for line in T:
+			# if record.startswith("//") or record.startswith(" "):
+			# 	continue
+			if line and line[0].isalpha():
+				record = self.parse_instruction(line)
+				self.distribute_instruction(record)
+
+		if self.file_name is not None:
+			T.close()
 
 	def parse_instruction(self, record):
 		"""parse transaction instructions one line at a tine"""
