@@ -2,7 +2,7 @@
 CSCI-GA 2434 Advanced Database Systems Final Project
 Replicated Concurrency Control and Recovery
 
-Authors:
+Team:
 Ren Yi--ry708@nyu.edu
 Yanqiu Wu--yw1370@nyu.edu
 '''
