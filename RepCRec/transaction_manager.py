@@ -193,9 +193,12 @@ class TransactionManager(object):
 					print ("All sites are down for x"+str(dataid))
 					print ("T"+str(Tid)+" is waiting to read x"+str(dataid))
 				else:
-					print ('T' + str(Tid) + " is waiting for read lock on x"+str(dataid))
-					for ct in conflict_Ts:
-						self.wait_for_graph[ct].append(Tid)
+					if len(conflict_Ts) == 0:
+						print ('T' + str(Tid) + " is waiting for read permission on x"+str(dataid)+" after site recovery.")
+					else:
+						print ('T' + str(Tid) + " is waiting for read lock on x"+str(dataid))
+						for ct in conflict_Ts:
+							self.wait_for_graph[ct].append(Tid)
 					# change the transaction status to wait
 					T.set_status("WAIT")
 				# add the command to list
