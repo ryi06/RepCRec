@@ -8,8 +8,13 @@ Yanqiu Wu--yw1370@nyu.edu
 
 Running instructions
 	1. With input file: python RepCRec_runner.py <input_file_name>
-	2. From stdin: cat <instructions> | python RepCRec_runner.py
-	   Note: <instructions> need to be separated by '\n'
+	2. From stdin: 
+		1) cat <input_file_name> | python RepCRec_runner.py
+		2) python RepCRec_runner.py < <input_file_name>
+		3) echo -e <instruction_string> | python RepCRec_runner.py
+	   	   Note: <instructions_string> need to be separated by '\n'. For example:
+	   	   "begin(T1)\nbegin(T2)\nW(T1,x1,101)\nW(T2,x2,202)\nW(T1,x2,102)\nW(T2,x1,201)\nend(T1)\ndump()"
+
 '''
 
 import argparse, sys
