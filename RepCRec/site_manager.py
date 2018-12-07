@@ -105,7 +105,8 @@ class SiteManager(object):
 	def __add_locks(self, sites, tid, lock_type, index):
 		"""Helper function for self.acquire_locks()"""
 		up = False
-		acquired = False
+		#acquired = False
+		acquired = []
 		conflict_txn = []
 		lock_sites = []
 
@@ -114,17 +115,22 @@ class SiteManager(object):
 				up = True
 				tmp_acq, tmp_txn = self.sites[s].add_lock(index, tid, lock_type)
 				conflict_txn.extend(x for x in tmp_txn if x not in conflict_txn)
-				if tmp_acq:
+				if tmp_acq: 
 					lock_sites.append(s)
-					acquired = True
+					acquired.append(True)
 					if lock_type == "READ":
 						break	
 				else:
-					if lock_type == "WRITE":
-						acquired = False
-						break
+					acquired.append(False)
+					#if lock_type == "WRITE":
+						#acquired = False
+						#break
+		if lock_type == "READ":
+			lock_acquisition = any(acquired)
+		else:
+			lock_acquisition = all(acquired)
 
-		return (up, acquired, conflict_txn, lock_sites)
+		return (up, lock_acquisition, conflict_txn, lock_sites)
 
 	
 	def release_locks(self, transaction, indices):
