@@ -95,7 +95,7 @@ class TransactionManager(object):
 				for ct in conflict_Ts:
 					self.wait_for_graph[ct].append(Tid)
 				# change the transaction status to wait
-				T.set_status("WAIT")
+			T.set_status("WAIT")
 			# add the command to list
 			command_tuple = ("WRITE",Tid,dataid,value)
 			self.waiting_commands.append(command_tuple)
@@ -128,6 +128,7 @@ class TransactionManager(object):
 				print ('All sites are down for replicated data x'+str(dataid))
 				self.__abort(Tid)
 			if val is None:
+				T.set_status("WAIT")
 				command_tuple = ("READ",Tid,dataid)
 				self.waiting_commands.append(command_tuple)
 				print ("All sites are down for x"+str(dataid))
@@ -202,8 +203,8 @@ class TransactionManager(object):
 						print ('T' + str(Tid) + " is waiting for read lock on x"+str(dataid))
 						for ct in conflict_Ts:
 							self.wait_for_graph[ct].append(Tid)
-					# change the transaction status to wait
-					T.set_status("WAIT")
+				# change the transaction status to wait
+				T.set_status("WAIT")
 				# add the command to list
 				command_tuple = ("READ",Tid,dataid)
 				self.waiting_commands.append(command_tuple)
@@ -440,6 +441,7 @@ class TransactionManager(object):
 		"""
 		print ("Site "+str(siteid) + " recovers.")
 		self.site_manager.recover(siteid)
+		self.__update_transaction_status()
 		self.__try_waiting_commands()
 
 
